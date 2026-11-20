@@ -1,0 +1,86 @@
+@PropertyShowingBooking.Api_HostAddress = http://localhost:5081
+
+# Example requests. Run the API first (dotnet run --project PropertyShowingBooking.Api),
+# then click "Send Request" above each request in Visual Studio or VS Code (REST Client extension).
+
+### Create a slot: flat P-101, 5 Dec 2026 at 10:00 AM India time, 30 minutes, at most 5 people (201)
+POST {{PropertyShowingBooking.Api_HostAddress}}/slots
+Content-Type: application/json
+
+{
+  "propertyId": "P-101",
+  "startsAt": "2026-12-05T10:00:00+05:30",
+  "durationMinutes": 30,
+  "capacity": 5
+}
+
+### Create a slot with bad input: capacity 0 and duration 10 (400)
+POST {{PropertyShowingBooking.Api_HostAddress}}/slots
+Content-Type: application/json
+
+{
+  "propertyId": "P-101",
+  "startsAt": "2026-12-05T10:00:00+05:30",
+  "durationMinutes": 10,
+  "capacity": 0
+}
+
+### List the slots of P-101 in the first week of December, first page (200)
+GET {{PropertyShowingBooking.Api_HostAddress}}/slots?propertyId=P-101&from=2026-12-01T00:00:00Z&to=2026-12-08T00:00:00Z&page=1&pageSize=20
+
+### Get one slot (200, or 404 if it does not exist)
+GET {{PropertyShowingBooking.Api_HostAddress}}/slots/1
+
+### Asha books slot 1 for her party of 3 (201, booking starts as Confirmed)
+POST {{PropertyShowingBooking.Api_HostAddress}}/slots/1/bookings
+Content-Type: application/json
+
+{
+  "renterEmail": "asha@mail.com",
+  "partySize": 3
+}
+
+### Asha books the same slot again (409: one active booking per renter per slot)
+POST {{PropertyShowingBooking.Api_HostAddress}}/slots/1/bookings
+Content-Type: application/json
+
+{
+  "renterEmail": "asha@mail.com",
+  "partySize": 1
+}
+
+### Bina asks for 3 seats when only 2 are left (409: not enough seats)
+POST {{PropertyShowingBooking.Api_HostAddress}}/slots/1/bookings
+Content-Type: application/json
+
+{
+  "renterEmail": "bina@mail.com",
+  "partySize": 3
+}
+
+### Asha cancels booking 1 before the slot starts (200, her seats are freed)
+POST {{PropertyShowingBooking.Api_HostAddress}}/bookings/1/transitions
+Content-Type: application/json
+
+{
+  "to": "Cancelled",
+  "reason": "Plans changed",
+  "actor": "renter"
+}
+
+### The owner marks booking 1 as Attended (409 here, because booking 1 is already Cancelled, which is final;
+### for a Confirmed booking this works only after the slot has started)
+POST {{PropertyShowingBooking.Api_HostAddress}}/bookings/1/transitions
+Content-Type: application/json
+
+{
+  "to": "Attended",
+  "reason": "Arrived on time",
+  "actor": "owner"
+}
+
+### Get one booking (200, or 404)
+GET {{PropertyShowingBooking.Api_HostAddress}}/bookings/1
+
+### Every state change of booking 1 with its time, actor and reason (200, or 404)
+GET {{PropertyShowingBooking.Api_HostAddress}}/bookings/1/history
